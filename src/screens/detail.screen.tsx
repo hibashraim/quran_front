@@ -46,15 +46,14 @@ interface Verse {
 
 interface VerseData {
   text: {
-    different_words: { quran_word: string }[];
-    different_wordsinONeCharacter: { different_chars: [number, string][]; quran_word: string,user_word:string }[];
-    different_wordsintashkeel: { different_charintashkeel: [number, string, string][]; quran_word: string ,user_word:string}[];
+    different_words: { quran_index:number,quran_word: string }[];
+    different_wordsinONeCharacter: { different_chars: [number, string][]; quran_index:number, quran_word: string,user_word:string }[];
+    different_wordsintashkeel: { different_charintashkeel: [number, string, string][]; quran_index:number, quran_word: string ,user_word:string}[];
     quranText: string;
     user_word:string
     extraWord:{ user_word: string }[];
   };
 }
-
 interface ErrorDetails {
   extraWords: string[];
   missingWords: string[];
@@ -78,15 +77,10 @@ const DetailScreen: React.FC<DetailScreenProps> = (props) => {
   const [highlightedVerseId, setHighlightedVerseId] = useState<string | null>(null);
   const [highlightedText, setHighlightedText] = useState<{ [key: string]: React.JSX.Element }>({});
  const [count,setCount]=useState(0);
-const [errorDetails, setErrorDetails] = useState<{ errorCount: number, extraWords: string[], missingWords: string[], incorrectByCharacters: string[], incorrectByTashkeel: string[] }>({
-  errorCount: 0,
-  extraWords: [],
-  missingWords: [],
-  incorrectByCharacters: [],
-  incorrectByTashkeel: [],
-});
+ const [errorDetails, setErrorDetails] = useState<{ [key: string]: ErrorDetails }>({});
 
-const showErrorDetails = (errorDetails: ErrorDetails) => {
+
+ const showErrorDetails = (verseId: string, errorDetails: ErrorDetails) => {
   if (errorDetails.errorCount > 0) {
     let errorMessage = '';
     if (errorDetails.extraWords.length > 0) {
@@ -142,6 +136,7 @@ const tafseer = async ( id: number) => {
       } catch (error) {
         console.error('Error fetching verses:', error);
         setLoading(false);
+        Alert.alert('خطأ', 'حدث خطأ أثناء جلب الآيات. الرجاء المحاولة مرة أخرى.');
       }
     };
 
@@ -170,88 +165,102 @@ const tafseer = async ( id: number) => {
       setPlayVerseId(id);
     } catch (error) {
       console.log('Error playing sound:', error);
+      Alert.alert('خطأ', 'حدث خطأ أثناء تشغيل الصوت. الرجاء المحاولة مرة أخرى.');
+
     }
   };
 
+
   const stopRecording = async (recording: Audio.Recording | null, quarnText: string, verseId: string) => {
-    if (!recording) return false;
+    if (!recording) {
+      console.error('Recording object is null or undefined');
+      return false;
+    }
+    
     try {
       console.log('Stopping recording..');
   
       await recording.stopAndUnloadAsync();
       const uri = recording.getURI();
       console.log('Recording URI:', uri);
-      
-      if (uri) {
-        const fileExtension = uri.split('.').pop()?.toLowerCase();
-        console.log('File extension:', fileExtension);
-        
-        if (fileExtension !== 'mp3' && fileExtension !== 'wav') {
-          console.error('Unsupported file format');
-          return false;
-        }
-        
-        const fileName = `recording-${Date.now()}.${fileExtension}`;
-        console.log('File name:', fileName);
   
-        await FileSystem.makeDirectoryAsync(FileSystem.documentDirectory + 'recordings/', { intermediates: true });
-        console.log('Directory created');
-  
-        await FileSystem.moveAsync({
-          from: uri,
-          to: FileSystem.documentDirectory + 'recordings/' + fileName,
-        });
-        console.log('File moved');
-  
-        const formData = new FormData();
-        formData.append('audioFile', {
-          uri: FileSystem.documentDirectory + 'recordings/' + fileName,
-          name: fileName,
-          type: `audioFile/${fileExtension}`,
-        });
-        formData.append('quranText', quarnText);
-        console.log('FormData prepared');
-  
-        const response = await fetch('https://quran-python.vercel.app/process-audio', {
-          method: 'POST',
-          body: formData,
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        });
-        console.log('Fetch response:', response);
-  
-        if (!response.ok) {
-          if (response.status === 503) {
-            console.error('The model is still loading, please try again later.');
-          } else if (response.status === 504) {
-            console.error('Server timeout, please try again later.');
-          } else {
-            console.error('There was an error with the model. Please try again later.');
-          }
-          return false;
-        }
-  
-        const text1 = await response.text();
-        try {
-          const text = JSON.parse(text1);
-          console.log(JSON.stringify(text));
-          const verseDataObject = text as VerseData;
-          const { highlightedText: newHighlightedText, count } = renderHighlightedVerse(verseDataObject);
-          const { extraWords, missingWords, incorrectByCharacters, incorrectByTashkeel, errorCount } = errorDetection(verseDataObject);
-  
-          setErrorDetails({ errorCount, extraWords, missingWords, incorrectByCharacters, incorrectByTashkeel });
-          setDisplayHighlightedText(true);
-          setCount(count);
-          setHighlightedText((prevState) => ({ ...prevState, [verseId]: newHighlightedText }));
-        } catch (err) {
-          console.error('Failed to parse JSON response:', err);
-          return false;
-        }
+      if (!uri) {
+        console.error('Failed to get recording URI');
+        return false;
       }
+  
+      const fileExtension = uri.split('.').pop()?.toLowerCase();
+      console.log('File extension:', fileExtension);
+  
+      if (fileExtension !== 'mp3' && fileExtension !== 'wav') {
+        console.error('Unsupported file format');
+        return false;
+      }
+  
+      const fileName = `recording-${Date.now()}.${fileExtension}`;
+      console.log('File name:', fileName);
+  
+      await FileSystem.makeDirectoryAsync(FileSystem.documentDirectory + 'recordings/', { intermediates: true });
+      console.log('Directory created');
+  
+      await FileSystem.moveAsync({
+        from: uri,
+        to: FileSystem.documentDirectory + 'recordings/' + fileName,
+      });
+      console.log('File moved');
+  
+      const formData = new FormData();
+      formData.append('audioFile', {
+        uri: FileSystem.documentDirectory + 'recordings/' + fileName,
+        name: fileName,
+        type: `audioFile/${fileExtension}`,
+      });
+      formData.append('quranText', quarnText);
+      console.log('FormData prepared');
+  
+      const response = await axios.post('https://quran-python.vercel.app/process-audio', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      console.log('Axios response:', response);
+  
+      if (!response.data) {
+        console.error('Empty response received');
+        Alert.alert('خطأ', 'لم يتم استقبال بيانات صالحة من الخادم. الرجاء المحاولة مرة أخرى.');
+        return false;
+      }
+      const verseDataObject = response.data as VerseData;
+
+      const { highlightedText: newHighlightedText, count } = renderHighlightedVerse(verseDataObject);
+      const { extraWords, missingWords, incorrectByCharacters, incorrectByTashkeel, errorCount } = errorDetection(verseDataObject);
+  
+      const newErrorDetails = { errorCount, extraWords, missingWords, incorrectByCharacters, incorrectByTashkeel };
+      setErrorDetails((prev) => ({ ...prev, [verseId]: newErrorDetails }));
+  
+      setDisplayHighlightedText(true);
+      setCount(count);
+      setHighlightedText((prevState) => ({ ...prevState, [verseId]: newHighlightedText }));
+  
       return true;
     } catch (err) {
-      console.error('Failed to stop recording', err);
+      console.error('Failed to stop recording or process audio:');
+      if (axios.isAxiosError(err)) {
+        console.error('Axios error details:', err.response?.data);
+        if (err.response?.status === 503) {
+          console.error('The model is still loading, please try again later.');
+          Alert.alert('خطأ', 'النموذج قيد التحميل، يرجى المحاولة مرة أخرى لاحقاً.');
+        } else if (err.response?.status === 504) {
+          console.error('Server timeout, please try again later.');
+          Alert.alert('خطأ', 'انتهى وقت الخادم، يرجى المحاولة مرة أخرى لاحقاً.');
+        } else {
+          console.error('There was an error with the model. Please try again later.');
+          Alert.alert('خطأ', 'حدث خطأ في النموذج. الرجاء المحاولة مرة أخرى لاحقاً.');
+        }
+      } else {
+        console.error('Unknown error:', err);
+        Alert.alert('خطأ', 'حدث خطأ غير معروف. الرجاء المحاولة مرة أخرى.');
+      }
       return false;
     }
   };
@@ -270,9 +279,13 @@ const tafseer = async ( id: number) => {
       if (recordingObject) {
         setRecording(recordingObject);
         setRecordingVerseId(verseId);
+      } else {
+        // إذا فشلت عملية التسجيل، عرض رسالة للمستخدم
+        Alert.alert('خطأ', 'حدث خطأ أثناء بدء تسجيل الصوت. الرجاء المحاولة مرة أخرى.');
       }
     }
   };
+  
 
   const handleVisibilityToggle = (verseId: string) => {
     setVisibleVerses((prev) => ({ ...prev, [verseId]: !prev[verseId] }));
@@ -327,8 +340,8 @@ const tafseer = async ( id: number) => {
                 mode={mode}
                 count={count}
                 handleHighlightVerse={handleHighlightVerse} 
-                showErrorDetails={showErrorDetails} 
-                errorDetails={errorDetails}
+                showErrorDetails={showErrorDetails}
+                errorDetails={errorDetails[`${item.verse_number}`]}
              tafseer={tafseer}
               />
             )}
@@ -356,7 +369,7 @@ interface VerseItemProps {
   handleVisibilityToggle: (verseId: string) => void;
   handleHighlightVerse: (verseId: string) => void;
   count:number;
-  showErrorDetails: (errorDetails: ErrorDetails) => void;
+  showErrorDetails: (verseId: string,errorDetails: ErrorDetails) => void;
   errorDetails: ErrorDetails;
     tafseer:( id: number) => void;
 }
@@ -443,10 +456,10 @@ const VerseItem: React.FC<VerseItemProps> = ({
         <Padder all>
           {displayHighlightedText && highlightedVerse && (
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}>
-             <TouchableOpacity onPress={() => showErrorDetails(errorDetails)}>
-                         <Image source={count ? Icons.lens : false} style={{ width: 20, height: 20, tintColor: Colors.rose,marginRight:5 }} />
+             <TouchableOpacity onPress={() => showErrorDetails(data.verse_number.toString(),errorDetails)}>
+                         <Image source={errorDetails.errorCount>0  ? Icons.lens : null} style={{ width: 20, height: 20, tintColor: Colors.rose,marginRight:5 }} />
                       </TouchableOpacity>
-                      <Image source={count ? Icons.attention : Icons.true } style={{ width: 15, height: 15, justifyContent: 'flex-end', marginRight: 5 }} /> 
+                      <Image source={errorDetails.errorCount>0 ? Icons.attention : Icons.true } style={{ width: 15, height: 15, justifyContent: 'flex-end', marginRight: 5 }} /> 
               <View style={{ marginLeft: 5 }}>{highlightedVerse}</View>
             </View>
           )}

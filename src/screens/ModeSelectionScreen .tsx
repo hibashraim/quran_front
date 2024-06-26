@@ -45,7 +45,7 @@ const ModeSelectionScreen: React.FC<ModeSelectionScreenProps> = ({ navigation })
         </View>
         
       </SafeAreaView>
-      <Text style={styles.title}>Quran Recitation App</Text>
+      <Text style={styles.title}> تطبيق تسميع القرآن </Text>
     </ImageBackground>
   );
 };
@@ -74,8 +74,9 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: Colors.rose,
     textAlign:'center',
-    marginBottom:20
- 
+    marginBottom:20,
+    fontWeight:'bold'
+      
     
   },
   button: {
@@ -84,11 +85,12 @@ const styles = StyleSheet.create({
     marginVertical: 20,
     borderRadius: 20,
     marginLeft: 20
+   
   },
   buttonText: {
     color: Colors.white,
-    fontSize: 20,
-    
+    fontSize: 15,
+    fontWeight:'bold'
   },
 });
 

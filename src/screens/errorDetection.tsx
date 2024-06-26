@@ -1,9 +1,9 @@
 
 interface VerseData {
   text: {
-    different_words: { quran_word: string }[];
-    different_wordsinONeCharacter: { different_chars: [number, string][]; quran_word: string,user_word:string }[];
-    different_wordsintashkeel: { different_charintashkeel: [number, string, string][]; quran_word: string ,user_word:string}[];
+    different_words: { quran_index:number,quran_word: string }[];
+    different_wordsinONeCharacter: { different_chars: [number, string][]; quran_index:number, quran_word: string,user_word:string }[];
+    different_wordsintashkeel: { different_charintashkeel: [number, string, string][]; quran_index:number, quran_word: string ,user_word:string}[];
     quranText: string;
     user_word:string
     extraWord:{ user_word: string }[];

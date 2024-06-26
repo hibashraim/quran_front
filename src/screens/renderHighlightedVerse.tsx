@@ -3,9 +3,9 @@ import { Text, View } from 'react-native';
 
 interface VerseData {
   text: {
-    different_words: { quran_word: string }[];
-    different_wordsinONeCharacter: { different_chars: [number, string][]; quran_word: string,user_word:string }[];
-    different_wordsintashkeel: { different_charintashkeel: [number, string, string][]; quran_word: string ,user_word:string}[];
+    different_words: { quran_index:number,quran_word: string }[];
+    different_wordsinONeCharacter: { different_chars: [number, string][]; quran_index:number, quran_word: string,user_word:string }[];
+    different_wordsintashkeel: { different_charintashkeel: [number, string, string][]; quran_index:number, quran_word: string ,user_word:string}[];
     quranText: string;
     user_word:string
     extraWord:{ user_word: string }[];
@@ -22,6 +22,7 @@ const stripTashkeel = (text: string): string => {
 };
 
 const renderHighlightedVerse = ({ text }: VerseData) => {
+  console.log(text)
   const { different_words, different_wordsinONeCharacter, different_wordsintashkeel, quranText ,extraWord} = text;
  let count=0;
  if(extraWord){
@@ -35,7 +36,7 @@ const renderHighlightedVerse = ({ text }: VerseData) => {
     <Text style= {[{fontSize:22}, {fontWeight:'bold'}]}>
       {words.map((word, index) => {
         // البحث عن الكلمة في different_words
-        const foundWordInDifferentWords = different_words.find(item => item.quran_word === word);
+        const foundWordInDifferentWords = different_words.find(item => item.quran_index=== index);
 
         if (foundWordInDifferentWords) {
           count++;
@@ -47,7 +48,7 @@ const renderHighlightedVerse = ({ text }: VerseData) => {
           );
         } else {
           // البحث عن الكلمة في different_wordsinONeCharacter
-          const foundWordInDifferentONeCharacter = different_wordsinONeCharacter.find(item => item.quran_word === word);
+          const foundWordInDifferentONeCharacter = different_wordsinONeCharacter.find(item => item.quran_index=== index);
 
           if (foundWordInDifferentONeCharacter) {
           count++;
@@ -91,7 +92,7 @@ const renderHighlightedVerse = ({ text }: VerseData) => {
             }
           } else {
             // البحث عن الكلمة في different_wordsintashkeel
-            const foundWordInDifferentTashkeel = different_wordsintashkeel.find(item => item.quran_word === word);
+            const foundWordInDifferentTashkeel = different_wordsintashkeel.find(item => item.quran_index=== index);
 
             if (foundWordInDifferentTashkeel) {
           count++;
