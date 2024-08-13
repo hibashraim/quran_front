@@ -25,7 +25,7 @@ Deep Learning:
 our model 
 https://lnkd.in/dzx_FWY2
 Backend_Repo
-https://lnkd.in/dgVXjHkD
+https://github.com/hibashraim/quran_python.git
 <h3>App Interface: </h3>
 <img width="300" src="https://raw.githubusercontent.com/hibashraim/quran_front/main/quran7.jpeg">
 <img width="300" src="https://raw.githubusercontent.com/hibashraim/quran_front/main/quran6.jpeg">
